@@ -82,7 +82,7 @@ function getNiceState (pod) {
             r += chalk.yellow('ContainerCreating');
             break;
         default:
-            r += state;
+            r += pod.state;
             break;
     }
     return r;
