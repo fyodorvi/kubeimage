@@ -296,15 +296,16 @@ try {
             process.exit(1);
         }
         const deployments = results[0];
-        let pods = results[1];
+        let allPods = results[1];
         deploymentsToUpdate.forEach(deployment => {
             const foundDeployment = _.find(deployments, { name: deployment[0] });
             if (foundDeployment) {
                 const serviceName = deployment[0];
-                pods = _.filter(pods, { name: deployment[0] });
-                if (deployment.length > 1) {
-                    getDeploymentBuildNumber(serviceName, (error, buildNumber)=> {
-                        pollingTargets.push(deployment[0]);
+                const pods = _.filter(allPods, { name: serviceName });
+
+                getDeploymentBuildNumber(serviceName, (error, buildNumber)=> {
+                    if (deployment.length > 1) {
+                        pollingTargets.push(serviceName);
                         if (deployment[1] == buildNumber) {
                             timeLog(`Deployment ${chalk.cyan(serviceName)} is already configured to build ${chalk.magenta(buildNumber)}, checking if pods are up to date...`);
                             let running = 0;
@@ -314,23 +315,21 @@ try {
                                 }
                             });
                             if (running == foundDeployment.desiredCount) {
-                                timeLog(`All pods for ${chalk.cyan(deployment[0])} are up to date`);
+                                timeLog(`All pods for ${chalk.cyan(serviceName)} are up to date`);
                             } else {
-                                timeLog(`Pods for ${chalk.cyan(deployment[0])} are not up to date, waiting...`);
+                                timeLog(`Pods for ${chalk.cyan(serviceName)} are not up to date, waiting...`);
                                 healthCheckPods(foundDeployment, buildNumber);
                             }
                         } else {
                             updateDeploymentBuildNumber(foundDeployment, deployment[1], buildNumber);
                         }
-                    });
-                } else {
-                    getDeploymentBuildNumber(serviceName, (error, buildNumber)=> {
+                    } else {
                         timeLog(`Deployment ${chalk.cyan(serviceName)} is configured to build ${chalk.magenta(buildNumber)}`);
                         pods.forEach(pod => {
                             timeLog(`Pod ${chalk.cyan(pod.id)} (${getNiceState(pod)}) is running build ${chalk.magenta(pod.build)}`);
                         })
-                    });
-                }
+                    }
+                });
             } else {
                 timeLog(chalk.red(`Could not find '${deployment}' deployment`));
             }
